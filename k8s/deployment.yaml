@@ -1,0 +1,78 @@
+# --- Deployment: my-k8s-deployment ------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-k8s-deployment
+  labels:
+    app: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        # Container 1 — BusyBox prints current date every minute
+        - name: date-printer
+          image: busybox:latest
+          args: ["sh", "-c", "while true; do date; sleep 60; done"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
+
+        # Container 2 — Hello World web with probes + resources
+        - name: web
+          image: nginxdemos/hello:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+# --- Service: only allow 88.196.208.91 --------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-k8s-svc
+  labels:
+    app: my-app
+  annotations:
+    # Use AWS NLB (good default on EKS; optional)
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  type: LoadBalancer
+  selector:
+    app: my-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  # Restrict who can reach the LB to this single client IP
+  loadBalancerSourceRanges:
+    - 88.196.208.91/32
+
+# --- End of file --------------------------------------------------------------
