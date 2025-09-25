@@ -25,7 +25,8 @@ Outputs include the ASG instance IDs; check the EC2 console for the public IP. A
 Manifests for a deployment named **my-k8s-deployment** with label `app: my-app`:
 - **Container 1**: `busybox:latest` prints the current date every minute.
 - **Container 2**: `nginxdemos/hello:latest` web server with readiness/liveness probes and resources.
-- Exposed via a ClusterIP Service and an **Ingress** restricted to `88.196.208.91/32` via nginx whitelist annotation.
+- Exposed externally via a LoadBalancer Service, restricted to client IP 88.196.208.91/32 using 
+- loadBalancerSourceRanges.
 
 ### Apply (to your EKS context)
 ```bash
